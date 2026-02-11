@@ -1,153 +1,184 @@
-const uploadArea = document.getElementById('uploadArea');
-const fileInput = document.getElementById('fileInput');
-const controls = document.getElementById('controls');
-const previewSection = document.getElementById('previewSection');
-const loading = document.getElementById('loading');
-const qualitySlider = document.getElementById('quality');
-const qualityValue = document.getElementById('qualityValue');
-const maxWidthInput = document.getElementById('maxWidth');
-const maxHeightInput = document.getElementById('maxHeight');
-const compressBtn = document.getElementById('compressBtn');
-const originalPreview = document.getElementById('originalPreview');
-const compressedPreview = document.getElementById('compressedPreview');
-const originalSize = document.getElementById('originalSize');
-const compressedSize = document.getElementById('compressedSize');
-const compressionRatio = document.getElementById('compressionRatio');
-const downloadBtn = document.getElementById('downloadBtn');
-const resetBtn = document.getElementById('resetBtn');
+import imageCompression from 'browser-image-compression';
+
+const $ = (sel) => document.querySelector(sel);
 
 let originalFile = null;
 let compressedFile = null;
 
-// Format file size
 function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
-// Update quality display
-qualitySlider.addEventListener('input', (e) => {
-    const value = Math.round(e.target.value * 100);
-    qualityValue.textContent = value + '%';
-});
+function setStatus(text, kind = 'default') {
+  const el = $('#statusLine');
+  el.textContent = text;
+  el.classList.remove('error', 'ok');
+  if (kind === 'error') el.classList.add('error');
+  if (kind === 'ok') el.classList.add('ok');
+}
 
-// Upload area click
-uploadArea.addEventListener('click', () => {
-    fileInput.click();
-});
+function setProgress(pct, visible) {
+  const wrap = $('#progressWrap');
+  const bar = $('#progressBar');
+  if (visible) {
+    wrap.hidden = false;
+    bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+  } else {
+    wrap.hidden = true;
+    bar.style.width = '0%';
+  }
+}
 
-// Drag and drop
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('dragover');
-});
+function updateUiEnabled() {
+  const hasFile = Boolean(originalFile);
+  $('#compressBtn').disabled = !hasFile;
+  $('#resetBtn').disabled = !hasFile;
+}
 
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('dragover');
-});
-
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        handleFile(files[0]);
-    }
-});
-
-// File input change
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        handleFile(e.target.files[0]);
-    }
-});
-
-// Handle file selection
 function handleFile(file) {
-    if (!file.type.startsWith('image/')) {
-        alert('Please select an image file.');
-        return;
-    }
+  if (!file || !file.type.startsWith('image/')) {
+    setStatus('Please select an image file.', 'error');
+    return;
+  }
 
-    originalFile = file;
-    const reader = new FileReader();
+  originalFile = file;
+  $('#fileMeta').hidden = false;
+  $('#fileName').textContent = file.name;
+  $('#originalSize').textContent = formatFileSize(file.size);
 
-    reader.onload = (e) => {
-        originalPreview.src = e.target.result;
-        originalSize.textContent = `Size: ${formatFileSize(file.size)}`;
-        controls.style.display = 'grid';
-        previewSection.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    $('#originalPreview').src = e.target.result;
+    $('#originalSizePreview').textContent = formatFileSize(file.size);
+  };
+  reader.readAsDataURL(file);
+
+  $('#previewSection').hidden = true;
+  $('#loading').hidden = true;
+  setProgress(0, false);
+  setStatus('Ready. Adjust settings and compress.', 'ok');
+  updateUiEnabled();
+}
+
+function resetAll() {
+  originalFile = null;
+  compressedFile = null;
+  $('#fileInput').value = '';
+  $('#fileMeta').hidden = true;
+  $('#fileName').textContent = '—';
+  $('#originalSize').textContent = '—';
+  $('#originalPreview').src = '';
+  $('#compressedPreview').src = '';
+  $('#originalSizePreview').textContent = '—';
+  $('#compressedSizePreview').textContent = '—';
+  $('#compressionRatio').textContent = '—';
+  $('#previewSection').hidden = true;
+  $('#loading').hidden = true;
+  setProgress(0, false);
+  setStatus('Choose an image to begin.');
+  updateUiEnabled();
+}
+
+// Quality slider
+$('#quality').addEventListener('input', (e) => {
+  const value = Math.round(Number(e.target.value) * 100);
+  $('#qualityValue').textContent = value + '%';
+});
+
+// Dropzone (label's for="fileInput" already opens the picker on click)
+$('#dropZone').addEventListener('dragover', (e) => {
+  e.preventDefault();
+  $('#dropZone').classList.add('dragover');
+});
+$('#dropZone').addEventListener('dragleave', () => $('#dropZone').classList.remove('dragover'));
+$('#dropZone').addEventListener('drop', (e) => {
+  e.preventDefault();
+  $('#dropZone').classList.remove('dragover');
+  const file = e.dataTransfer?.files?.[0];
+  handleFile(file);
+});
+$('#dropZone').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    $('#fileInput').click();
+  }
+});
+
+$('#fileInput').addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  handleFile(file);
+});
+
+// Compress
+$('#compressBtn').addEventListener('click', async () => {
+  if (!originalFile) return;
+
+  $('#previewSection').hidden = true;
+  $('#loading').hidden = false;
+  setProgress(20, true);
+  setStatus('Compressing…');
+
+  try {
+    const maxDim = Math.max(
+      Number($('#maxWidth').value) || 1920,
+      Number($('#maxHeight').value) || 1920
+    );
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: maxDim,
+      useWebWorker: true,
+      quality: Number($('#quality').value) || 0.8,
     };
 
-    reader.readAsDataURL(file);
-}
+    setProgress(50, true);
+    const compressedBlob = await imageCompression(originalFile, options);
+    compressedFile = compressedBlob;
 
-// Compress image
-compressBtn.addEventListener('click', async () => {
-    if (!originalFile) return;
+    setProgress(80, true);
+    setStatus('Preparing preview…');
 
-    loading.style.display = 'block';
-    controls.style.display = 'none';
-    previewSection.style.display = 'none';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      $('#compressedPreview').src = e.target.result;
+      $('#compressedSizePreview').textContent = formatFileSize(compressedFile.size);
+      const ratio = ((1 - compressedFile.size / originalFile.size) * 100).toFixed(1);
+      $('#compressionRatio').textContent = 'Reduced by ' + ratio + '%';
 
-    try {
-        const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: Math.max(parseInt(maxWidthInput.value), parseInt(maxHeightInput.value)),
-            useWebWorker: true,
-            quality: parseFloat(qualitySlider.value)
-        };
-
-        const compressedFileBlob = await imageCompression(originalFile, options);
-        compressedFile = compressedFileBlob;
-
-        // Create preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            compressedPreview.src = e.target.result;
-            compressedSize.textContent = `Size: ${formatFileSize(compressedFile.size)}`;
-            
-            const ratio = ((1 - compressedFile.size / originalFile.size) * 100).toFixed(1);
-            compressionRatio.textContent = `Reduced by: ${ratio}%`;
-            compressionRatio.style.color = ratio > 0 ? '#11998e' : '#dc3545';
-
-            loading.style.display = 'none';
-            previewSection.style.display = 'block';
-        };
-        reader.readAsDataURL(compressedFile);
-    } catch (error) {
-        console.error('Compression error:', error);
-        alert('An error occurred while compressing the image. Please try again.');
-        loading.style.display = 'none';
-        controls.style.display = 'grid';
-    }
+      setProgress(0, false);
+      $('#loading').hidden = true;
+      $('#previewSection').hidden = false;
+      setStatus('Done. Download or compress another.', 'ok');
+    };
+    reader.readAsDataURL(compressedFile);
+  } catch (err) {
+    console.error('Compression error:', err);
+    setProgress(0, false);
+    $('#loading').hidden = true;
+    setStatus(err?.message || 'Compression failed. Try again.', 'error');
+  }
 });
 
-// Download compressed image
-downloadBtn.addEventListener('click', () => {
-    if (!compressedFile) return;
-
-    const url = URL.createObjectURL(compressedFile);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'compressed_' + originalFile.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+// Download
+$('#downloadBtn').addEventListener('click', () => {
+  if (!compressedFile) return;
+  const url = URL.createObjectURL(compressedFile);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'compressed_' + (originalFile?.name || 'image');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 // Reset
-resetBtn.addEventListener('click', () => {
-    originalFile = null;
-    compressedFile = null;
-    fileInput.value = '';
-    originalPreview.src = '';
-    compressedPreview.src = '';
-    controls.style.display = 'none';
-    previewSection.style.display = 'none';
-    uploadArea.style.display = 'block';
+$('#resetBtn').addEventListener('click', resetAll);
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  resetAll();
 });

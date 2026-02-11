@@ -1,0 +1,17 @@
+{
+  "name": "image-compressor",
+  "version": "1.0.0",
+  "description": "Compress images in the browser — same UI design as pdf-splitter",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "browser-image-compression": "^2.0.2"
+  }
+}

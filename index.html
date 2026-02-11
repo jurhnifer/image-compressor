@@ -1,85 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Compressor - Compress Images Online</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>🖼️ Image Compressor</h1>
-            <p class="subtitle">Compress your images quickly and easily - all processing happens in your browser</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Compressor</title>
+    <meta
+      name="description"
+      content="Compress images in your browser. No uploads — all processing happens locally."
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="card">
+        <header class="header">
+          <h1>Image Compressor</h1>
         </header>
+        <div class="upload">
+          <input id="fileInput" type="file" accept="image/*" />
+          <label for="fileInput" id="dropZone" class="dropzone" tabindex="0" role="button">
+            <div class="dropzone-title">Drop image</div>
+          </label>
 
-        <main>
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-content">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <h2>Drop your image here</h2>
-                    <p>or click to browse</p>
-                    <input type="file" id="fileInput" accept="image/*" hidden>
-                </div>
+          <div class="filemeta" id="fileMeta" hidden>
+            <div class="fileline">
+              <span class="filelabel">File</span>
+              <span class="filevalue" id="fileName">—</span>
+            </div>
+            <div class="fileline">
+              <span class="filelabel">Size</span>
+              <span class="filevalue" id="originalSize">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="panel">
+            <h2>Settings</h2>
+
+            <div class="row">
+              <label for="quality" class="label">Quality</label>
+              <div class="slider-row">
+                <input id="quality" class="input range" type="range" min="0.1" max="1" step="0.1" value="0.8" />
+                <span id="qualityValue" class="quality-value">80%</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="maxWidth" class="label">Max width (px)</label>
+              <input id="maxWidth" class="input" type="number" min="100" max="5000" value="1920" step="100" />
+            </div>
+            <div class="row">
+              <label for="maxHeight" class="label">Max height (px)</label>
+              <input id="maxHeight" class="input" type="number" min="100" max="5000" value="1920" step="100" />
             </div>
 
-            <div class="controls" id="controls" style="display: none;">
-                <div class="control-group">
-                    <label for="quality">Quality:</label>
-                    <input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.8">
-                    <span id="qualityValue">80%</span>
-                </div>
-                <div class="control-group">
-                    <label for="maxWidth">Max Width (px):</label>
-                    <input type="number" id="maxWidth" min="100" max="5000" value="1920" step="100">
-                </div>
-                <div class="control-group">
-                    <label for="maxHeight">Max Height (px):</label>
-                    <input type="number" id="maxHeight" min="100" max="5000" value="1920" step="100">
-                </div>
-                <button class="btn-compress" id="compressBtn">Compress Image</button>
+            <div class="actions">
+              <button id="compressBtn" class="btn primary" disabled>Compress image</button>
+              <button id="resetBtn" class="btn" disabled>Reset</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="status" aria-live="polite">
+              <div class="status-line" id="statusLine">—</div>
+              <div class="progress" id="progressWrap" hidden>
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+              </div>
             </div>
 
-            <div class="preview-section" id="previewSection" style="display: none;">
-                <div class="preview-container">
-                    <div class="preview-box">
-                        <h3>Original</h3>
-                        <img id="originalPreview" alt="Original image">
-                        <div class="file-info">
-                            <span id="originalSize"></span>
-                        </div>
-                    </div>
-                    <div class="preview-box">
-                        <h3>Compressed</h3>
-                        <img id="compressedPreview" alt="Compressed image">
-                        <div class="file-info">
-                            <span id="compressedSize"></span>
-                            <span id="compressionRatio"></span>
-                        </div>
-                    </div>
+            <div class="preview-section" id="previewSection" hidden>
+              <div class="preview-grid">
+                <div class="preview-box">
+                  <div class="preview-label">Original</div>
+                  <img id="originalPreview" class="preview-img" alt="Original" />
+                  <div class="file-info" id="originalSizePreview">—</div>
                 </div>
-                <div class="download-section">
-                    <button class="btn-download" id="downloadBtn">Download Compressed Image</button>
-                    <button class="btn-reset" id="resetBtn">Compress Another Image</button>
+                <div class="preview-box">
+                  <div class="preview-label">Compressed</div>
+                  <img id="compressedPreview" class="preview-img" alt="Compressed" />
+                  <div class="file-info" id="compressedSizePreview">—</div>
+                  <div class="file-info ok" id="compressionRatio">—</div>
                 </div>
+              </div>
+              <div class="actions">
+                <button id="downloadBtn" class="btn primary">Download compressed</button>
+              </div>
             </div>
 
-            <div class="loading" id="loading" style="display: none;">
-                <div class="spinner"></div>
-                <p>Compressing image...</p>
+            <div class="loading" id="loading" hidden>
+              <div class="spinner"></div>
+              <p>Compressing…</p>
             </div>
-        </main>
-
-        <footer>
-            <p>All processing happens locally in your browser. Your images are never uploaded to any server.</p>
-        </footer>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-    <script src="script.js"></script>
-</body>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/script.js"></script>
+  </body>
 </html>
